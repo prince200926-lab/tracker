@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import axios from 'axios';
+import api from '../services/api';
 
 const AuthContext = createContext();
 
@@ -26,7 +27,7 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
       // Get user profile
-      axios.get('/api/auth/profile')
+      api.get('/auth/profile')
         .then(response => {
           console.log('AuthContext: Profile fetched:', response.data);
           setUser(response.data);
@@ -47,7 +48,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       setError(null);
-      const response = await axios.post('/api/auth/login', { email, password });
+      const response = await api.post('/auth/login', { email, password });
 
       const { token, ...userData } = response.data;
 
@@ -71,7 +72,7 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password) => {
     try {
       setError(null);
-      const response = await axios.post('/api/auth/signup', { username, email, password });
+      const response = await api.post('/auth/signup', { username, email, password });
 
       const { token, ...userData } = response.data;
 
@@ -106,7 +107,7 @@ export const AuthProvider = ({ children }) => {
   const updateDisplayName = async (displayName) => {
     try {
       setError(null);
-      const response = await axios.put('/api/auth/displayname', { displayName });
+      const response = await api.put('/auth/displayname', { displayName });
 
       const { token, ...userData } = response.data;
 
