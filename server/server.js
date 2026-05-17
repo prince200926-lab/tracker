@@ -46,8 +46,15 @@ app.get('/', (req, res) => {
   res.json({ message: 'Academic Goals Tracker API' });
 });
 
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+const { db } = require('./config/database');
+
+app.get('/api/health', async (req, res) => {
+  try {
+    await db.raw('SELECT 1');
+    res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.json({ status: 'error', database: 'disconnected', timestamp: new Date().toISOString() });
+  }
 });
 
 // Socket.io connection handling
@@ -92,7 +99,7 @@ io.on('connection', (socket) => {
 const { initializeDatabase } = require('./config/database');
 
 initializeDatabase()
-  .then(() => console.log("SQLite database initialized"))
+  .then(() => console.log("PostgreSQL database initialized"))
   .catch(err => {
     console.error("Database initialization error:", err);
     process.exit(1);

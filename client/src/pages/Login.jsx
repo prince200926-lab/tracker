@@ -1,15 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import api from '../services/api';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [serverStatus, setServerStatus] = useState(null);
   const { login, error } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    api.get('/health')
+      .then(res => setServerStatus(res.data))
+      .catch(() => setServerStatus({ status: 'error', database: 'disconnected' }));
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -34,6 +42,16 @@ const Login = () => {
         <div style={{ textAlign: 'center', marginBottom: '24px' }}>
           <h1>Welcome Back</h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Sign in to continue</p>
+          {serverStatus && (
+            <div style={{ marginTop: '8px', fontSize: '12px', display: 'flex', justifyContent: 'center', gap: '12px' }}>
+              <span style={{ color: serverStatus.status === 'ok' ? 'var(--success)' : 'var(--error)' }}>
+                Server: {serverStatus.status === 'ok' ? 'Connected' : 'Disconnected'}
+              </span>
+              <span style={{ color: serverStatus.database === 'connected' ? 'var(--success)' : 'var(--error)' }}>
+                Database: {serverStatus.database || 'Unknown'}
+              </span>
+            </div>
+          )}
         </div>
         
         <div className="card" style={{ padding: '20px' }}>
