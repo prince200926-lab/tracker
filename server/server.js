@@ -50,10 +50,18 @@ const { db } = require('./config/database');
 
 app.get('/api/health', async (req, res) => {
   try {
-    await db.raw('SELECT 1');
-    res.json({ status: 'ok', database: 'connected', timestamp: new Date().toISOString() });
+    const result = await db.raw('SELECT 1');
+    const tables = await db('information_schema.tables')
+      .select('table_name')
+      .where('table_schema', 'public');
+    res.json({ 
+      status: 'ok', 
+      database: 'connected', 
+      tables: tables.map(t => t.table_name),
+      timestamp: new Date().toISOString() 
+    });
   } catch (err) {
-    res.json({ status: 'error', database: 'disconnected', timestamp: new Date().toISOString() });
+    res.json({ status: 'error', database: 'disconnected', error: err.message, timestamp: new Date().toISOString() });
   }
 });
 
