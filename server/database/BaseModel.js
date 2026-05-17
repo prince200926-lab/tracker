@@ -22,8 +22,13 @@ class BaseModel {
   }
 
   async create(data) {
-    const [id] = await db(this.table).insert(data);
-    return await this.findById(id);
+    try {
+      const result = await db(this.table).insert(data).returning('*');
+      return result[0];
+    } catch (err) {
+      console.error('Create error:', err.message);
+      throw err;
+    }
   }
 
   async update(id, data) {
