@@ -1,5 +1,11 @@
 const knex = require('knex');
 
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'set (hidden)' : 'NOT SET');
+
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL environment variable is not set!');
+}
+
 const db = knex({
   client: 'pg',
   connection: process.env.DATABASE_URL,
