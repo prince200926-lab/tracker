@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5000' : '';
+const SOCKET_URL = import.meta.env.DEV ? 'http://localhost:5000' : 'https://tracker-h319.onrender.com';
 
 class SocketService {
   constructor() {
