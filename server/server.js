@@ -48,6 +48,16 @@ app.get('/', (req, res) => {
 
 const { db } = require('./config/database');
 
+app.get('/api/init-tables', async (req, res) => {
+  try {
+    const { initializeDatabase } = require('./config/database');
+    await initializeDatabase();
+    res.json({ status: 'ok', message: 'Tables created/verified' });
+  } catch (err) {
+    res.json({ status: 'error', error: err.message });
+  }
+});
+
 app.get('/api/health', async (req, res) => {
   try {
     const result = await db.raw('SELECT 1');
