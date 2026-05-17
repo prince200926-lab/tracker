@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+// Production API URL - points to Render server
 // Create axios instance with default config
 const api = axios.create({
   baseURL: 'https://tracker-h319.onrender.com/api',
