@@ -1,32 +1,13 @@
 const knex = require('knex');
-const path = require('path');
-const fs = require('fs');
 
-// Ensure the database directory exists
-const dbDir = path.join(__dirname, '..', 'data');
-if (!fs.existsSync(dbDir)) {
-  fs.mkdirSync(dbDir, { recursive: true });
-}
-
-// SQLite database configuration
 const db = knex({
-  client: 'sqlite3',
-  connection: {
-    filename: path.join(dbDir, 'academic-goals-tracker.db')
-  },
-  useNullAsDefault: true,
-  migrations: {
-    directory: path.join(dbDir, 'migrations')
-  },
-  seeds: {
-    directory: path.join(dbDir, 'seeds')
-  }
+  client: 'pg',
+  connection: process.env.DATABASE_URL,
+  pool: { min: 0, max: 7 }
 });
 
-// Initialize database tables
 const initializeDatabase = async () => {
   try {
-    // Create users table
     const userTableExists = await db.schema.hasTable('users');
     if (!userTableExists) {
       await db.schema.createTable('users', (table) => {
@@ -37,12 +18,12 @@ const initializeDatabase = async () => {
         table.string('password');
         table.string('displayName').notNullable();
         table.string('googleId').unique();
-        table.text('joinedGroups').defaultTo('[]'); // Store as JSON string
-        table.timestamps(true, true);
+        table.text('joinedGroups').defaultTo('[]');
+        table.timestamp('createdAt').defaultTo(db.fn.now());
+        table.timestamp('updatedAt').defaultTo(db.fn.now());
       });
     }
 
-    // Create groups table
     const groupTableExists = await db.schema.hasTable('groups');
     if (!groupTableExists) {
       await db.schema.createTable('groups', (table) => {
@@ -50,14 +31,14 @@ const initializeDatabase = async () => {
         table.string('groupId').unique().notNullable();
         table.string('groupName').notNullable();
         table.string('leaderId').notNullable();
-        table.text('members').defaultTo('[]'); // Store as JSON string
-        table.text('pendingRequests').defaultTo('[]'); // Store as JSON string
+        table.text('members').defaultTo('[]');
+        table.text('pendingRequests').defaultTo('[]');
         table.string('groupCode').unique().notNullable();
-        table.timestamps(true, true);
+        table.timestamp('createdAt').defaultTo(db.fn.now());
+        table.timestamp('updatedAt').defaultTo(db.fn.now());
       });
     }
 
-    // Create tasks table
     const taskTableExists = await db.schema.hasTable('tasks');
     if (!taskTableExists) {
       await db.schema.createTable('tasks', (table) => {
@@ -73,10 +54,10 @@ const initializeDatabase = async () => {
         table.string('createdByName');
         table.string('groupId').notNullable();
         table.text('completionStatus').defaultTo('{}');
-        table.timestamps(true, true);
+        table.timestamp('createdAt').defaultTo(db.fn.now());
+        table.timestamp('updatedAt').defaultTo(db.fn.now());
       });
     } else {
-      // Add new columns if they don't exist
       const hasCreatedBy = await db.schema.hasColumn('tasks', 'createdBy');
       if (!hasCreatedBy) {
         await db.schema.table('tasks', (table) => {
