@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create axios instance with default config
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: 'https://tracker-h319.onrender.com/api',
   headers: {
     'Content-Type': 'application/json'
   }
