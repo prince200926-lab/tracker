@@ -7,11 +7,7 @@ const morgan = require('morgan');
 const dotenv = require('dotenv');
 
 // Load environment variables
-const path = require("path");
-
-dotenv.config({
-  path: path.join(__dirname, ".env")
-});
+dotenv.config();
 
 // Create Express app
 const app = express();
