@@ -42,9 +42,9 @@ app.use('/api/auth', authRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/tasks', taskRoutes);
 
-// Routes placeholder
+// Root - redirect to login
 app.get('/', (req, res) => {
-  res.json({ message: 'Academic Goals Tracker API' });
+  res.redirect('/login');
 });
 
 const { db } = require('./config/database');
