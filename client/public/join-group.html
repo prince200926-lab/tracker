@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Join Group - Academic Goals Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div style="padding: 16px;">
+    <button onclick="window.location.href='/dashboard'" style="margin-bottom: 16px;">← Back</button>
+    <div style="max-width: 400px; margin: 0 auto;">
+      <h1>Join Group</h1>
+      <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Enter the group code</p>
+      <div class="card" style="padding: 20px;">
+        <div id="error-msg" class="error" style="display: none; margin-bottom: 12px;"></div>
+        <div id="success-msg" class="success" style="display: none; margin-bottom: 12px;"></div>
+        <form id="join-form" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label for="groupCode">Group Code</label>
+            <input type="text" id="groupCode" required style="text-align: center; font-size: 20px; letter-spacing: 4px; padding: 14px;">
+          </div>
+          <button type="submit" id="submit-btn" style="background: var(--accent); color: white; border: none; padding: 14px; font-size: 16px;">Join Group</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    const API_BASE = 'https://tracker-h319.onrender.com/api';
+
+    document.getElementById('join-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errEl = document.getElementById('error-msg');
+      const sucEl = document.getElementById('success-msg');
+      errEl.style.display = 'none';
+      sucEl.style.display = 'none';
+      btn.textContent = 'Sending...';
+      btn.disabled = true;
+
+      const token = localStorage.getItem('token');
+      if (!token) { window.location.href = '/login'; return; }
+
+      try {
+        const res = await fetch(API_BASE + '/groups/join', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupCode: document.getElementById('groupCode').value.toUpperCase() })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to join group');
+        sucEl.textContent = 'Request sent! You will be notified when approved.';
+        sucEl.style.display = 'block';
+        btn.textContent = 'Join Group';
+        btn.disabled = false;
+        setTimeout(() => window.location.href = '/dashboard', 2000);
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.textContent = 'Join Group';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

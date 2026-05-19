@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Create Group - Academic Goals Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div style="padding: 16px;">
+    <button onclick="window.location.href='/dashboard'" style="margin-bottom: 16px;">← Back</button>
+    <div style="max-width: 400px; margin: 0 auto;">
+      <h1>Create Group</h1>
+      <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 14px;">Start a new study group</p>
+      <div class="card" style="padding: 20px;">
+        <div id="error-msg" class="error" style="display: none; margin-bottom: 12px;"></div>
+        <form id="create-form" style="display: flex; flex-direction: column; gap: 14px;">
+          <div class="form-group">
+            <label for="groupName">Group Name</label>
+            <input type="text" id="groupName" required>
+          </div>
+          <button type="submit" id="submit-btn" style="background: var(--accent); color: white; border: none; padding: 14px; font-size: 16px;">Create Group</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <script>
+    const API_BASE = 'https://tracker-h319.onrender.com/api';
+
+    document.getElementById('create-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errEl = document.getElementById('error-msg');
+      errEl.style.display = 'none';
+      btn.textContent = 'Creating...';
+      btn.disabled = true;
+
+      const token = localStorage.getItem('token');
+      if (!token) { window.location.href = '/login'; return; }
+
+      try {
+        const res = await fetch(API_BASE + '/groups/create', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupName: document.getElementById('groupName').value })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || 'Failed to create group');
+        window.location.href = '/group/' + data.groupId;
+      } catch (err) {
+        errEl.textContent = err.message;
+        errEl.style.display = 'block';
+        btn.textContent = 'Create Group';
+        btn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

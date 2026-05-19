@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Group - Academic Goals Tracker</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="root">
+    <header style="flex-wrap: wrap; gap: 12px;">
+      <div style="flex: 1 1 200px;">
+        <h1 id="group-title" style="font-size: 1.5rem; margin: 0;"></h1>
+        <p id="group-code" style="color: var(--text-secondary); font-size: 14px;"></p>
+      </div>
+      <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+        <button onclick="window.location.href='/dashboard'">Back</button>
+        <button id="add-task-btn" onclick="showTaskModal()" style="background: var(--accent); color: white; border: none;">Add Task</button>
+      </div>
+    </header>
+    <main style="display: flex; flex-direction: column; gap: 24px; max-width: 900px;">
+      <div>
+        <h2 style="text-align: center;">Tasks</h2>
+        <div id="tasks-container"></div>
+      </div>
+      <div>
+        <h2 id="members-title" style="text-align: center;">Members</h2>
+        <div id="members-container" class="card"></div>
+        <div id="requests-container"></div>
+      </div>
+    </main>
+  </div>
+
+  <div id="task-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; padding: 12px;">
+    <div class="card" style="width: 100%; max-width: 400px; max-height: 90vh; overflow: auto;">
+      <h2 style="margin-top: 0;">Create Task</h2>
+      <form id="task-form" style="display: flex; flex-direction: column; gap: 12px;">
+        <div class="form-group"><label>Subject</label><input type="text" id="task-subject" required></div>
+        <div class="form-group"><label>Chapter</label><input type="text" id="task-chapter" required></div>
+        <div class="form-group"><label>Lecture No</label><input type="text" id="task-lecture" required></div>
+        <div class="form-group"><label>Description</label><textarea id="task-desc" style="min-height: 80px;"></textarea></div>
+        <div class="form-group"><label>Deadline</label><input type="date" id="task-deadline"></div>
+        <div style="display: flex; gap: 8px; margin-top: 8px;">
+          <button type="submit" style="background: var(--accent); color: white; border: none; flex: 1;">Create</button>
+          <button type="button" onclick="hideTaskModal()" style="flex: 1;">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://tracker-h319.onrender.com/api';
+    const pathParts = window.location.pathname.split('/');
+    const groupId = pathParts[pathParts.length - 1];
+    let user = null;
+    let group = null;
+    let tasks = [];
+    let isLeader = false;
+
+    function getToken() {
+      const t = localStorage.getItem('token');
+      if (!t) window.location.href = '/login';
+      return t;
+    }
+
+    function showTaskModal() {
+      document.getElementById('task-modal').style.display = 'flex';
+    }
+    function hideTaskModal() {
+      document.getElementById('task-modal').style.display = 'none';
+    }
+
+    document.getElementById('task-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const token = getToken();
+      try {
+        const res = await fetch(API_BASE + '/tasks/create', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            groupId,
+            subject: document.getElementById('task-subject').value,
+            chapter: document.getElementById('task-chapter').value,
+            lectureNo: document.getElementById('task-lecture').value,
+            description: document.getElementById('task-desc').value,
+            deadline: document.getElementById('task-deadline').value
+          })
+        });
+        if (!res.ok) throw new Error((await res.json()).message);
+        hideTaskModal();
+        document.getElementById('task-form').reset();
+        loadGroup();
+      } catch (err) { alert(err.message); }
+    });
+
+    async function loadGroup() {
+      const token = getToken();
+      try {
+        const [groupRes, tasksRes, profileRes] = await Promise.all([
+          fetch(API_BASE + '/groups/' + groupId, { headers: { 'Authorization': 'Bearer ' + token } }),
+          fetch(API_BASE + '/tasks/group/' + groupId, { headers: { 'Authorization': 'Bearer ' + token } }),
+          fetch(API_BASE + '/auth/profile', { headers: { 'Authorization': 'Bearer ' + token } })
+        ]);
+        group = await groupRes.json();
+        tasks = await tasksRes.json();
+        user = await profileRes.json();
+        isLeader = user.userId === group.leaderId;
+
+        document.getElementById('group-title').textContent = group.groupName;
+        document.getElementById('group-code').textContent = 'Code: ' + group.groupCode;
+        document.getElementById('members-title').textContent = 'Members (' + (group.members?.length || 0) + ')';
+
+        if (!isLeader) document.getElementById('add-task-btn').style.display = 'none';
+
+        const tc = document.getElementById('tasks-container');
+        if (!tasks.length) {
+          tc.innerHTML = '<div class="card" style="text-align: center; padding: 24px;"><p style="color: var(--text-secondary);">No tasks yet</p></div>';
+        } else {
+          let html = '<div style="display: flex; flex-direction: column; gap: 12px;">';
+          tasks.forEach(t => {
+            const done = Object.values(t.completionStatus || {}).filter(Boolean).length;
+            const total = Object.keys(t.completionStatus || {}).length;
+            const myDone = t.completionStatus?.[user.userId];
+            const isCreator = t.createdBy === user.userId;
+            html += '<div class="card" style="opacity: ' + (myDone ? 0.6 : 1) + ';">';
+            html += '<div style="display: flex; flex-direction: column; gap: 8px;">';
+            html += '<div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 8px;">';
+            html += '<div style="flex: 1;"><h3 style="margin: 0 0 4px; text-decoration: ' + (myDone ? 'line-through' : 'none') + ';">' + t.subject + '</h3>';
+            html += '<p style="color: var(--text-muted); font-size: 13px;">Ch ' + t.chapter + ', Lec ' + t.lectureNo + '</p>';
+            html += '<p style="color: var(--accent); font-size: 12px;">Added by ' + (t.createdByName || t.createdBy) + '</p></div>';
+            html += '<div style="display: flex; align-items: center; gap: 8px;">';
+            html += '<span style="font-size: 12px; color: var(--text-muted);">' + done + '/' + total + '</span>';
+            html += '<input type="checkbox" ' + (myDone ? 'checked' : '') + ' onchange="toggleTask(\'' + t.taskId + '\', this.checked)" style="width: 20px; height: 20px;">';
+            html += '</div></div>';
+            if (t.description) html += '<p style="font-size: 14px;">' + t.description + '</p>';
+            if (t.deadline) html += '<p style="color: var(--text-muted); font-size: 12px;">Due: ' + new Date(t.deadline).toLocaleDateString() + '</p>';
+            if (isCreator) html += '<button onclick="deleteTask(\'' + t.taskId + '\')" style="background: var(--error); color: white; border: none; font-size: 12px; padding: 6px 12px; align-self: flex-start; margin-top: 8px;">Delete Task</button>';
+            html += '</div></div>';
+          });
+          html += '</div>';
+          tc.innerHTML = html;
+        }
+
+        const mc = document.getElementById('members-container');
+        mc.innerHTML = (group.members || []).map(m =>
+          '<div style="padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 4px;">' +
+          '<span style="font-size: 14px;">' + (m.displayName || m.username || m.userId || m) + '</span>' +
+          ((m.userId || m) === group.leaderId ? '<span style="background: var(--accent); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px;">Leader</span>' : '') +
+          '</div>'
+        ).join('');
+
+        if (isLeader && group.pendingRequests?.length) {
+          const rc = document.getElementById('requests-container');
+          rc.innerHTML = '<h3 style="margin-top: 24px;">Pending Requests</h3><div class="card">' +
+            group.pendingRequests.map(req =>
+              '<div style="padding: 8px 0; border-bottom: 1px solid var(--border);">' +
+              '<p>' + (req.username || req.userId) + '</p>' +
+              '<div style="display: flex; gap: 8px; margin-top: 8px;">' +
+              '<button onclick="respondRequest(\'' + req.userId + '\', true)" style="background: var(--success); color: white; border: none; font-size: 12px;">Accept</button>' +
+              '<button onclick="respondRequest(\'' + req.userId + '\', false)" style="background: var(--error); color: white; border: none; font-size: 12px;">Reject</button>' +
+              '</div></div>'
+            ).join('') + '</div>';
+        }
+      } catch {
+        window.location.href = '/dashboard';
+      }
+    }
+
+    async function toggleTask(taskId, completed) {
+      const token = getToken();
+      await fetch(API_BASE + '/tasks/mark-complete', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ taskId, completed })
+      });
+      loadGroup();
+    }
+
+    async function deleteTask(taskId) {
+      if (!confirm('Delete this task?')) return;
+      const token = getToken();
+      await fetch(API_BASE + '/tasks/' + taskId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token }
+      });
+      loadGroup();
+    }
+
+    async function respondRequest(userId, approved) {
+      const token = getToken();
+      await fetch(API_BASE + '/groups/respond-request', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ groupId, userId, action: approved ? 'accept' : 'reject' })
+      });
+      loadGroup();
+    }
+
+    loadGroup();
+  </script>
+</body>
+</html>

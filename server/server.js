@@ -114,16 +114,32 @@ io.on('connection', (socket) => {
   });
 });
 
-// Serve static client files (for production build)
-const clientDistPath = path.join(__dirname, '..', 'client', 'dist');
-app.use(express.static(clientDistPath));
+// Serve static client files (for production)
+const clientPublicPath = path.join(__dirname, '..', 'client', 'public');
+app.use(express.static(clientPublicPath));
 
-// Catch-all for client-side routing (SPA)
-app.get('*', (req, res) => {
-  if (!req.path.startsWith('/api')) {
-    res.sendFile(path.join(clientDistPath, 'index.html'));
+// Page-based routing - serve correct HTML for each route
+app.get('/login', (req, res) => res.sendFile(path.join(clientPublicPath, 'login.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(clientPublicPath, 'register.html')));
+app.get('/dashboard', (req, res) => res.sendFile(path.join(clientPublicPath, 'dashboard.html')));
+app.get('/create-group', (req, res) => res.sendFile(path.join(clientPublicPath, 'create-group.html')));
+app.get('/join-group', (req, res) => res.sendFile(path.join(clientPublicPath, 'join-group.html')));
+
+// Group page with ID
+app.get('/group/:groupId', (req, res) => res.sendFile(path.join(clientPublicPath, 'group.html')));
+
+// Root redirects to dashboard
+app.get('/', (req, res) => {
+  const token = req.query.token || req.headers.authorization?.split(' ')[1];
+  if (token) {
+    res.redirect('/dashboard');
+  } else {
+    res.redirect('/login');
   }
 });
+
+// 404 fallback
+app.use((req, res) => res.status(404).sendFile(path.join(clientPublicPath, 'login.html')));
 
 // Database connection
 const { initializeDatabase } = require('./config/database');
